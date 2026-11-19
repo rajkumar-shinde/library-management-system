@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import { isTokenExpired, clearAuth } from "../utils/auth";
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const token = sessionStorage.getItem("accessToken");
@@ -11,12 +12,15 @@ function ProtectedRoute({ children, adminOnly = false }) {
     user = null;
   }
 
-  // User not logged in
   if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Only admin can access admin routes
+  if (isTokenExpired(token)) {
+    clearAuth();
+    return <Navigate to="/login" replace />;
+  }
+
   if (adminOnly && user.role !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }

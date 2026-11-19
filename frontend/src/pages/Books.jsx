@@ -8,26 +8,29 @@ function Books() {
   const [message, setMessage] = useState("");
   const [requestingId, setRequestingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [search, setSearch] = useState("");
 
-  const user = JSON.parse(sessionStorage.getItem("user") || "null");
   const token = sessionStorage.getItem("accessToken");
-  const isAdmin = user?.role === "admin";
 
-  // Fetch all books
+  let user = null;
+  try {
+    user = JSON.parse(sessionStorage.getItem("user") || "null");
+  } catch {
+    user = null;
+  }
+
+  const isAdmin = Boolean(token && user?.role === "admin");
+
   useEffect(() => {
     const fetchBooks = async () => {
       try {
         const response = await fetch("/api/books");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch books");
-        }
+        if (!response.ok) throw new Error("Failed to fetch books");
 
         const data = await response.json();
-
         setBooks(Array.isArray(data) ? data : data.books || []);
-      } catch (error) {
-        setError(error.message);
+      } catch (err) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -36,7 +39,6 @@ function Books() {
     fetchBooks();
   }, []);
 
-  // Student: Request Book
   const handleRequest = async (bookId) => {
     if (!token) {
       setMessage("Please login before requesting a book.");
@@ -58,25 +60,22 @@ function Books() {
 
       const data = await response.json();
 
-      setMessage(
-        data.message ||
-          (response.ok ? "Book requested successfully" : "Request failed"),
-      );
-    } catch (error) {
-      console.error(error);
-      setMessage("Unable to connect to server");
+      if (!response.ok) {
+        throw new Error(data.message || "Request failed");
+      }
+
+      setMessage(data.message || "Book requested successfully!");
+    } catch (err) {
+      setMessage(err.message);
     } finally {
       setRequestingId(null);
     }
   };
 
-  // Admin: Delete Book
   const handleDelete = async (bookId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this book?",
-    );
-
-    if (!confirmDelete) return;
+    if (!window.confirm("Are you sure you want to delete this book?")) {
+      return;
+    }
 
     setDeletingId(bookId);
     setMessage("");
@@ -95,25 +94,51 @@ function Books() {
         throw new Error(data.message || "Failed to delete book");
       }
 
-      setBooks((prevBooks) => prevBooks.filter((book) => book._id !== bookId));
+      setBooks((prev) => prev.filter((book) => book._id !== bookId));
 
-      setMessage("Book deleted successfully");
-    } catch (error) {
-      setMessage(error.message);
+      setMessage("Book deleted successfully!");
+    } catch (err) {
+      setMessage(err.message);
     } finally {
       setDeletingId(null);
     }
   };
 
-  if (loading) return <h2>Loading books...</h2>;
+  const filteredBooks = books.filter((book) => {
+    const query = search.toLowerCase();
 
-  if (error) return <p>{error}</p>;
+    return (
+      (book.title || "").toLowerCase().includes(query) ||
+      (book.author || "").toLowerCase().includes(query) ||
+      (book.category || "").toLowerCase().includes(query)
+    );
+  });
 
   return (
-    <div>
-      <h1>Library Books</h1>
+    <div className="books-page">
+      <div className="books-header">
+        <div>
+          <h1>Library Books</h1>
+          <p>Explore and manage our library collection.</p>
+        </div>
+
+        {isAdmin && (
+          <Link className="primary-link" to="/admin/add-book">
+            + Add New Book
+          </Link>
+        )}
+      </div>
 
       {message && <p role="status">{message}</p>}
+      {error && <p role="alert">{error}</p>}
+
+      <input
+        className="book-search"
+        type="search"
+        placeholder="Search by title, author or category..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
       {!token && (
         <p>
@@ -121,52 +146,80 @@ function Books() {
         </p>
       )}
 
-      {isAdmin && (
-        <p>
-          <Link to="/admin/add-book">Add New Book</Link>
-        </p>
-      )}
-
-      {books.length === 0 ? (
-        <p>No books available</p>
+      {loading ? (
+        <p>Loading books...</p>
+      ) : filteredBooks.length === 0 ? (
+        <p>No books found.</p>
       ) : (
-        books.map((book) => (
-          <div key={book._id}>
-            <h3>{book.title}</h3>
-            <p>Author: {book.author}</p>
-            <p>Category: {book.category}</p>
-            <p>ISBN: {book.isbn}</p>
-            <p>Available Copies: {book.availableCopies}</p>
+        <div className="book-grid">
+          {filteredBooks.map((book) => (
+            <div className="book-card" key={book._id}>
+              <div className="book-icon">📖</div>
 
-            {/* Student: Request Book */}
-            {!isAdmin && (
-              <button
-                onClick={() => handleRequest(book._id)}
-                disabled={book.availableCopies <= 0 || requestingId !== null}
+              <h3>{book.title}</h3>
+
+              <p>
+                <strong>Author:</strong> {book.author}
+              </p>
+
+              <p>
+                <strong>Category:</strong> {book.category}
+              </p>
+
+              <p>
+                <strong>ISBN:</strong> {book.isbn}
+              </p>
+
+              <p>
+                <strong>Available:</strong> {book.availableCopies}
+              </p>
+
+              <span
+                className={
+                  book.availableCopies > 0
+                    ? "availability available"
+                    : "availability unavailable"
+                }
               >
-                {requestingId === book._id ? "Requesting..." : "Request Book"}
-              </button>
-            )}
+                {book.availableCopies > 0 ? "Available" : "Out of Stock"}
+              </span>
 
-            {/* Admin: Edit and Delete Book */}
-            {isAdmin && (
-              <div>
-                <Link to={`/admin/edit-book/${book._id}`}>
-                  <button type="button">Edit Book</button>
-                </Link>
+              <div className="book-actions">
+                {!isAdmin && (
+                  <button
+                    onClick={() => handleRequest(book._id)}
+                    disabled={
+                      book.availableCopies <= 0 || requestingId !== null
+                    }
+                  >
+                    {requestingId === book._id
+                      ? "Requesting..."
+                      : "Request Book"}
+                  </button>
+                )}
 
-                <button
-                  onClick={() => handleDelete(book._id)}
-                  disabled={deletingId !== null}
-                >
-                  {deletingId === book._id ? "Deleting..." : "Delete Book"}
-                </button>
+                {isAdmin && (
+                  <>
+                    <Link
+                      className="edit-btn"
+                      to={`/admin/edit-book/${book._id}`}
+                    >
+                      Edit Book
+                    </Link>
+
+                    <button
+                      className="delete-btn"
+                      onClick={() => handleDelete(book._id)}
+                      disabled={deletingId !== null}
+                    >
+                      {deletingId === book._id ? "Deleting..." : "Delete"}
+                    </button>
+                  </>
+                )}
               </div>
-            )}
-
-            <hr />
-          </div>
-        ))
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

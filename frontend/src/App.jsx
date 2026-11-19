@@ -9,56 +9,66 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AddBook from "./pages/AddBook";
 import EditBook from "./pages/EditBook";
 
+import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AuthWatcher from "./components/AuthWatcher";
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/books" element={<Books />} />
+      <AuthWatcher />
 
-        {/* Logged-in User */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+      <Navbar />
 
-        {/* Admin Routes */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute adminOnly>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+      <main className="page-container">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/books" element={<Books />} />
 
-        <Route
-          path="/admin/add-book"
-          element={
-            <ProtectedRoute adminOnly>
-              <AddBook />
-            </ProtectedRoute>
-          }
-        />
+          {/* Student Dashboard */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/admin/edit-book/:id"
-          element={
-            <ProtectedRoute adminOnly>
-              <EditBook />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
+          {/* Admin Dashboard */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Add Book */}
+          <Route
+            path="/admin/add-book"
+            element={
+              <ProtectedRoute adminOnly>
+                <AddBook />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Edit Book */}
+          <Route
+            path="/admin/edit-book/:id"
+            element={
+              <ProtectedRoute adminOnly>
+                <EditBook />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
     </BrowserRouter>
   );
 }
