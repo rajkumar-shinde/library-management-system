@@ -24,5 +24,4 @@ router.get("/my", verifyJWT, getMyBorrows);
 router.get("/all", verifyJWT, authorizeAdmin, getAllBorrows);
 export default router;
 
-//
 // eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhZmVlZWY3NmI0OTllYzJlYzQyMWJmZiIsImlhdCI6MTc5NTA5MzU1MCwiZXhwIjoxNzk1MTc5OTUwfQ.Ll1gUvdv2FM1loEESF3rVah4ShPrKyrevOCx1Tee2u0
