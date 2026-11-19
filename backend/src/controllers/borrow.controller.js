@@ -140,4 +140,115 @@ const issueBook = async (req, res) => {
   }
 };
 
-export { requestBook, issueBook };
+const returnBook = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Validate Borrow ID
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid borrow ID",
+      });
+    }
+
+    // 2. Find borrow record
+    const borrow = await Borrow.findById(id);
+
+    if (!borrow) {
+      return res.status(404).json({
+        success: false,
+        message: "Borrow record not found",
+      });
+    }
+
+    // 3. Check book status
+    if (borrow.status !== "issued") {
+      return res.status(400).json({
+        success: false,
+        message: "Only issued books can be returned",
+      });
+    }
+
+    // 4. Calculate fine
+    const returnDate = new Date();
+    const dueDate = new Date(borrow.dueDate);
+
+    const lateDays = Math.max(
+      0,
+      Math.ceil((returnDate - dueDate) / (1000 * 60 * 60 * 24)),
+    );
+
+    const fineAmount = lateDays * 5; // Rs. 5 per late day
+
+    // 5. Update borrow record
+    borrow.returnDate = returnDate;
+    borrow.status = "returned";
+    borrow.fineAmount = fineAmount;
+    borrow.fineStatus = fineAmount > 0 ? "unpaid" : "paid";
+
+    await borrow.save();
+
+    // 6. Increase available book copies
+    await Book.findByIdAndUpdate(borrow.book, {
+      $inc: { availableCopies: 1 },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Book returned successfully",
+      lateDays,
+      fineAmount,
+      borrow,
+    });
+  } catch (error) {
+    console.error("Return book error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const getMyBorrows = async (req, res) => {
+  try {
+    const borrows = await Borrow.find({
+      user: req.user._id,
+    })
+      .populate("book", "title author isbn category")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: borrows.length,
+      borrows,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const getAllBorrows = async (req, res) => {
+  try {
+    const borrows = await Borrow.find()
+      .populate("user", "name email")
+      .populate("book", "title author isbn")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: borrows.length,
+      borrows,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+export { requestBook, issueBook, returnBook, getMyBorrows, getAllBorrows };
