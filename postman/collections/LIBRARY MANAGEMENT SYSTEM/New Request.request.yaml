@@ -1,0 +1,21 @@
+$kind: http-request
+url: http://localhost:3000/api/books
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"Atomic Habits\",\r
+
+    \  \"author\": \"James Clear\",\r
+
+    \  \"isbn\": \"9780735211292\",\r
+
+    \  \"category\": \"Self Help\",\r
+
+    \  \"totalCopies\": 5,\r
+
+    \  \"availableCopies\": 5\r
+
+    }"
+order: 1000
