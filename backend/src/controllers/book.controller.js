@@ -173,3 +173,12 @@ const deleteBook = async (req, res) => {
   }
 };
 export { createBook, getAllBooks, getBookById, updateBook, deleteBook };
+
+//
+// API          Method	        Status
+// Create        Book	        POST	✅
+// Get           All Books     	GET	✅
+// Get           Single Book	GET	✅
+// Update        Book	        PATCH	✅
+// Delete        Book	        DELETE	✅
+//

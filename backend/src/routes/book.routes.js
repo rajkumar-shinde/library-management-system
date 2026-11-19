@@ -1,4 +1,5 @@
-import { Router } from "express";
+import express from "express";
+
 import {
   createBook,
   getAllBooks,
@@ -7,12 +8,17 @@ import {
   deleteBook,
 } from "../controllers/book.controller.js";
 
-const router = Router();
+import { verifyJWT, authorizeAdmin } from "../middlewares/auth.middleware.js";
 
-router.post("/", createBook);
+const router = express.Router();
+
+// Anyone can view books
 router.get("/", getAllBooks);
 router.get("/:id", getBookById);
-router.patch("/:id", updateBook);
-router.delete("/:id", deleteBook);
+
+// Only admin can modify books
+router.post("/", verifyJWT, authorizeAdmin, createBook);
+router.patch("/:id", verifyJWT, authorizeAdmin, updateBook);
+router.delete("/:id", verifyJWT, authorizeAdmin, deleteBook);
 
 export default router;
